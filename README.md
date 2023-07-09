@@ -60,4 +60,4 @@ https://blog.langchain.dev/auto-eval-of-question-answering-tasks/
 
 **Disclaimer**
 
-```I change from OpenAI API to AzureOpenAI with access to `GPT-4` or `gpt-35-turbo` and an Anthropic API key to take advantage of all of the default dashboard model settings. However, additional models (e.g., from Hugging Face) can be easily added to the app.```
+```I change from OpenAI to AzureOpenAI with access to `GPT-4` or `gpt-35-turbo` and an Anthropic API key to take advantage of all of the default dashboard model settings. However, additional models (e.g., from Hugging Face) can be easily added to the app.```
