@@ -55,7 +55,8 @@ https://blog.langchain.dev/auto-eval-of-question-answering-tasks/
 
 **UI**
 
-![image](https://user-images.githubusercontent.com/122662504/233218347-de10cf41-6230-47a7-aa9e-8ab01673b87a.png)
+<img width="1397" alt="Screen Shot 2023-07-09 at 9 53 12 AM" src="https://github.com/huqianghui/auto-evaluator/assets/7360524/8db9cce4-2175-4b26-831f-02f5b3d0bdeb">
+
 
 **Disclaimer**
 
