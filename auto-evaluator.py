@@ -2,16 +2,14 @@ import os
 import json
 import time
 from typing import List
-import faiss
 import pypdf
-import random
 import itertools
 import text_utils
 import pandas as pd
 import altair as alt
 import streamlit as st
 from io import StringIO
-from llama_index import Document
+import openai
 from langchain.llms import Anthropic
 from langchain.chains import RetrievalQA
 from langchain.vectorstores import FAISS
@@ -22,23 +20,34 @@ from langchain.chains import QAGenerationChain
 from langchain.retrievers import TFIDFRetriever
 from langchain.evaluation.qa import QAEvalChain
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
-from gpt_index import LLMPredictor, ServiceContext, GPTFaissIndex
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI
-
+from llama_index import StorageContext, ServiceContext,LLMPredictor,GPTVectorStoreIndex,SimpleDirectoryReader,load_index_from_storage
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_BASE"] = "https://openaidemo-hu.openai.azure.com/"
 os.environ["OPENAI_API_VERSION"] = "2023-03-15-preview"
-os.environ["OPENAI_API_KEY"] = "XXXXXX"
+os.environ["OPENAI_API_KEY"] = "XXXXXXX"
 
 OPENAI_API_TYPE = "azure"
 OPENAI_API_BASE = "https://openaidemo-hu.openai.azure.com/"
 OPENAI_API_VERSION = "2023-03-15-preview"
-OPENAI_API_KEY = "XXXXXX"
+OPENAI_API_KEY = "XXXXXXX"
 DEPLOYMENT_NAME = "gpt-35-turbo"
 
+openai.api_type = "azure"
+openai.api_version = "2022-12-01"
+openai.api_base = "https://openaidemo-hu.openai.azure.com/"
+openai.api_key = "XXXXXXX"
+
+
+FAISS_FILE_PATH="./faiss_index"
+FAISS_INDEX_NAME="finance"
+
+LLAMA_FAISS_FILE_PATH="./llama_src_path"
+LLAMA_FAISS_INDEX_FILE_PATH="./llama_faiss_index"
+LLAMA_FAISS_INDEX_NAME="finance"
 
 # Keep dataframe in memory to accumulate experimental results
 if "existing_df" not in st.session_state:
@@ -93,9 +102,7 @@ def generate_eval(text: str, num_questions: int, chunk: int):
     @return: eval set as JSON list
     """
     st.info("`Generating eval set ...`")
-    n = len(text)
-    starting_indices = [random.randint(0, n - chunk) for _ in range(num_questions)]
-    sub_sequences = [text[i:i + chunk] for i in starting_indices]
+    sub_sequences = split_texts(text,chunk/num_questions,overlap,split_method)
    
     chain = QAGenerationChain.from_llm(AzureChatOpenAI(openai_api_base=OPENAI_API_BASE,
                                         openai_api_version=OPENAI_API_VERSION,
@@ -191,7 +198,11 @@ def make_retriever(splits, retriever_type, embedding_type, num_neighbors, _llm):
     # Select retriever
     if retriever_type == "similarity-search":
         try:
-            vector_store = FAISS.from_texts(splits, embedding)
+            if(os.path.exists(FAISS_FILE_PATH)):
+                vector_store = FAISS.load_local(FAISS_FILE_PATH,embedding, FAISS_INDEX_NAME)
+            else:
+                vector_store = FAISS.from_texts(splits, embedding)
+                vector_store.save_local(FAISS_FILE_PATH,FAISS_INDEX_NAME)
         except ValueError:
             st.warning("`Error using OpenAI embeddings (disallowed TikToken token in the text). Using HuggingFace.`",
                        icon="⚠️")
@@ -202,12 +213,38 @@ def make_retriever(splits, retriever_type, embedding_type, num_neighbors, _llm):
     elif retriever_type == "TF-IDF":
         retriever_obj = TFIDFRetriever.from_texts(splits)
     elif retriever_type == "Llama-Index":
-        documents = [Document(t, LangchainEmbedding(embedding)) for t in splits]
-        llm_predictor = LLMPredictor(llm)
-        context = ServiceContext.from_defaults(chunk_size_limit=512, llm_predictor=llm_predictor)
-        d = 1536
-        faiss_index = faiss.IndexFlatL2(d)
-        retriever_obj = GPTFaissIndex.from_documents(documents, faiss_index=faiss_index, service_context=context)
+        
+        llm_predictor = LLMPredictor(llm=llm)
+        langchainEmbedding = LangchainEmbedding(OpenAIEmbeddings(model="text-embedding-ada-002", chunk_size=1, openai_api_version="2023-03-15-preview"))
+        # langchainEmbedding = LangchainEmbedding(OpenAIEmbeddings(
+        #     model="text-embedding-ada-002",
+        #     deployment="text-embedding-ada-002",
+        #     openai_api_base=OPENAI_API_BASE,
+        #     openai_api_type=OPENAI_API_TYPE, 
+        #     chunk_size=1))
+        
+        service_context = ServiceContext.from_defaults(llm_predictor=llm_predictor, embed_model=langchainEmbedding)
+        if(os.path.exists(LLAMA_FAISS_FILE_PATH)):
+            # rebuild storage context
+            documents = SimpleDirectoryReader(LLAMA_FAISS_FILE_PATH).load_data()
+            # load index
+            index = GPTVectorStoreIndex.from_documents(documents,service_context=service_context)
+            retriever_obj = index.as_query_engine(service_context=service_context, verbose=True)
+            # storage_context = StorageContext.from_defaults(persist_dir=LLAMA_FAISS_INDEX_FILE_PATH)
+            # index = load_index_from_storage(storage_context)
+            # retriever_obj = index.as_query_engine()
+        else:
+            os.makedirs(LLAMA_FAISS_FILE_PATH)
+            for i, split in enumerate(splits):
+                with open(f"{LLAMA_FAISS_FILE_PATH}/{i}.txt", 'w') as fp:
+                    fp.write(split)
+
+            # Load all  documents
+            splits_docs = SimpleDirectoryReader(LLAMA_FAISS_FILE_PATH).load_data()
+            index = GPTVectorStoreIndex.from_documents(splits_docs,service_context=service_context,verbose=True)
+            retriever_obj = index.as_query_engine(service_context=service_context, verbose=True)
+            os.makedirs(LLAMA_FAISS_INDEX_FILE_PATH)
+            index.storage_context.persist(persist_dir = LLAMA_FAISS_INDEX_FILE_PATH)
     else:
         st.warning("`Retriever type not recognized. Using SVM`", icon="⚠️")
         retriever_obj = SVMRetriever.from_texts(splits, embedding)
@@ -338,8 +375,7 @@ def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num
         if retriever_type != "Llama-Index":
             predictions_list.append(chain(data))
         elif retriever_type == "Llama-Index":
-            answer = chain.query(data["question"], similarity_top_k=num_neighbors, response_mode="tree_summarize",
-                                 use_async=True)
+            answer = chain.query(data["question"])
             predictions_list.append({"question": data["question"], "answer": data["answer"], "result": answer.response})
         gt_dataset.append(data)
         end_time = time.time()
@@ -371,7 +407,7 @@ st.sidebar.image("img/diagnostic.jpg")
 
 with st.sidebar.form("user_input"):
     num_eval_questions = st.select_slider("`Number of eval questions`",
-                                          options=[1, 5, 10, 15, 20], value=5)
+                                          options=[1,2,3,4,5,6,7,8,9,10], value=3)
 
     chunk_chars = st.select_slider("`Choose chunk size for splitting`",
                                    options=[500, 750, 1000, 1500, 2000], value=1000)
