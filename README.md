@@ -1,3 +1,7 @@
+利用LLM来开发应用，生成相应的企业知识库的主要分成如下四个阶段：
+![prompt-flow-lifecycle](https://github.com/huqianghui/QA-generation-auto-evaluator/assets/7360524/7133c99d-95a3-45e8-9dbb-fb3f345b7b95)
+
+
 # `Auto-evaluator` :brain: :memo:
 
 > **Note**
