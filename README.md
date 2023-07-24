@@ -8,6 +8,9 @@
 
 2. IT部门得到原厂或者合作伙伴的原型之后，大概根据之前系列视频知道了优化方向，但是希望能到得到更好的工具和可视化方式来衡量是否已经调整到上线要求，这样怎么来具体量化等。
 
+视频B站地址： https://www.bilibili.com/video/BV1DN411e7MB/
+
+youtube地址： https://youtu.be/feQrsP-BIfY
 
 # `QA-generation & Auto-evaluator` :brain: :memo:
 
