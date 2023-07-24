@@ -1,6 +1,6 @@
 pandas==1.4.3
 fastapi==0.85.2
-langchain==0.0.223
+langchain==0.0.173
 python-multipart==0.0.6
 uvicorn==0.18.3
 openai==0.27.4
@@ -16,7 +16,7 @@ altair==4.2.2
 tokenizers==0.13.3
 sentence-transformers==2.2.2
 scikit-learn==1.2.1
-llama-index==0.7.9
+llama-index==0.6.25
 streamlit==1.21.0
 faiss-cpu==1.7.3
 tiktoken==0.3.3

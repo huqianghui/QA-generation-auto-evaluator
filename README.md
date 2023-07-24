@@ -55,9 +55,8 @@ https://blog.langchain.dev/auto-eval-of-question-answering-tasks/
 
 **UI**
 
-<img width="1440" alt="Screen Shot 2023-07-17 at 5 27 56 PM" src="https://github.com/huqianghui/auto-evaluator/assets/7360524/b2e474b6-b0bc-4f01-af36-89f2e4a8daaa">
-
+![image](https://user-images.githubusercontent.com/122662504/233218347-de10cf41-6230-47a7-aa9e-8ab01673b87a.png)
 
 **Disclaimer**
 
-```I change from OpenAI to AzureOpenAI with access to `GPT-4` or `gpt-35-turbo` and an Anthropic API key to take advantage of all of the default dashboard model settings. However, additional models (e.g., from Hugging Face) can be easily added to the app.```
+```You will need an OpenAI API key with access to `GPT-4` and an Anthropic API key to take advantage of all of the default dashboard model settings. However, additional models (e.g., from Hugging Face) can be easily added to the app.```

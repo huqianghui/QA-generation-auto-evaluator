@@ -22,24 +22,25 @@ from langchain.evaluation.qa import QAEvalChain
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
-from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI
+from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI,CHAT_PROMPT
 from llama_index import StorageContext, ServiceContext,LLMPredictor,GPTVectorStoreIndex,SimpleDirectoryReader,load_index_from_storage
+
 
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_BASE"] = "https://openaidemo-hu.openai.azure.com/"
 os.environ["OPENAI_API_VERSION"] = "2023-03-15-preview"
-os.environ["OPENAI_API_KEY"] = "XXXXXXX"
+os.environ["OPENAI_API_KEY"] = "a65f52d60c744eb9b141d9939cd4c4b6"
 
 OPENAI_API_TYPE = "azure"
 OPENAI_API_BASE = "https://openaidemo-hu.openai.azure.com/"
 OPENAI_API_VERSION = "2023-03-15-preview"
-OPENAI_API_KEY = "XXXXXXX"
+OPENAI_API_KEY = "a65f52d60c744eb9b141d9939cd4c4b6"
 DEPLOYMENT_NAME = "gpt-35-turbo"
 
 openai.api_type = "azure"
 openai.api_version = "2022-12-01"
 openai.api_base = "https://openaidemo-hu.openai.azure.com/"
-openai.api_key = "XXXXXXX"
+openai.api_key = "a65f52d60c744eb9b141d9939cd4c4b6"
 
 
 FAISS_FILE_PATH="./faiss_index"
@@ -73,7 +74,7 @@ def load_docs(files: List) -> str:
     @return: string of all docs concatenated
     """
 
-    st.info("`Reading doc ...`")
+    st.info("`读取文档 ...`")
     all_text = ""
     for file_path in files:
         file_extension = os.path.splitext(file_path.name)[1]
@@ -101,21 +102,24 @@ def generate_eval(text: str, num_questions: int, chunk: int):
     @param chunk: chunk size to draw question from in the doc
     @return: eval set as JSON list
     """
-    st.info("`Generating eval set ...`")
-    sub_sequences = split_texts(text,chunk/num_questions,overlap,split_method)
+    st.info("`生成评估数据集 ...`")
+    chunk = round(len(text)/num_questions)
+    sub_sequences = split_texts(text,chunk,overlap,split_method)
    
     chain = QAGenerationChain.from_llm(AzureChatOpenAI(openai_api_base=OPENAI_API_BASE,
                                         openai_api_version=OPENAI_API_VERSION,
                                         deployment_name=DEPLOYMENT_NAME,
                                         openai_api_key=OPENAI_API_KEY,
                                         openai_api_type=OPENAI_API_TYPE,
-                                        temperature=0))
+                                        temperature=0),
+                                        CHAT_PROMPT)
 
     eval_set = []
     for i, b in enumerate(sub_sequences):
         try:
-            qa = chain.run(b)
-            eval_set.append(qa)
+            if(i <num_questions):
+                qa = chain.run(b)
+                eval_set.append(qa)
         except Exception as e:
             st.warning("An exception occurred: %s" % str(e))
             st.warning('Error generating question %s.' % str(i + 1), icon="⚠️")
@@ -132,7 +136,7 @@ def split_texts(text, chunk_size: int, overlap, split_method: str):
     @param split_method:
     @return: list of str splits
     """
-    st.info("`Splitting doc ...`")
+    st.info("`分割文档 ...`")
     if split_method == "RecursiveTextSplitter":
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,
                                                        chunk_overlap=overlap)
@@ -185,7 +189,7 @@ def make_retriever(splits, retriever_type, embedding_type, num_neighbors, _llm):
     @param _llm: model
     @return: retriever
     """
-    st.info("`Making retriever ...`")
+    st.info("`创建检索器 ...`")
     # Set embeddings
     if embedding_type == "OpenAI":
         embedding = OpenAIEmbeddings(chunk_size = 1)
@@ -250,7 +254,6 @@ def make_retriever(splits, retriever_type, embedding_type, num_neighbors, _llm):
         retriever_obj = SVMRetriever.from_texts(splits, embedding)
     return retriever_obj
 
-
 def make_chain(llm, retriever, retriever_type: str) -> RetrievalQA:
     """
     Make chain
@@ -259,7 +262,7 @@ def make_chain(llm, retriever, retriever_type: str) -> RetrievalQA:
     @param retriever_type: retriever type
     @return: chain (or return retriever for Llama-Index)
     """
-    st.info("`Making chain ...`")
+    st.info("`创建langchain ...`")
     if retriever_type == "Llama-Index":
         qa = retriever
     else:
@@ -268,7 +271,6 @@ def make_chain(llm, retriever, retriever_type: str) -> RetrievalQA:
                                          retriever=retriever,
                                          input_key="question")
     return qa
-
 
 def grade_model_answer(predicted_dataset: List, predictions: List, grade_answer_prompt: str) -> List:
     """
@@ -279,7 +281,7 @@ def grade_model_answer(predicted_dataset: List, predictions: List, grade_answer_
     @return: A list of scores for the distilled answers.
     """
     # Grade the distilled answer
-    st.info("`Grading model answer ...`")
+    st.info("`模型答案评分 ...`")
     # Set the grading prompt based on the grade_answer_prompt parameter
     if grade_answer_prompt == "Fast":
         prompt = GRADE_ANSWER_PROMPT_FAST
@@ -311,7 +313,6 @@ def grade_model_answer(predicted_dataset: List, predictions: List, grade_answer_
 
     return graded_outputs
 
-
 def grade_model_retrieval(gt_dataset: List, predictions: List, grade_docs_prompt: str):
     """
     Grades the relevance of retrieved documents based on ground truth and model predictions.
@@ -321,7 +322,7 @@ def grade_model_retrieval(gt_dataset: List, predictions: List, grade_docs_prompt
     @return: list of scores for the retrieved documents.
     """
     # Grade the docs retrieval
-    st.info("`Grading relevance of retrieved docs ...`")
+    st.info("`检索到的文档进行相关性评分...`")
 
     # Set the grading prompt based on the grade_docs_prompt parameter
     prompt = GRADE_DOCS_PROMPT_FAST if grade_docs_prompt == "Fast" else GRADE_DOCS_PROMPT
@@ -346,7 +347,6 @@ def grade_model_retrieval(gt_dataset: List, predictions: List, grade_docs_prompt
     )
     return graded_outputs
 
-
 def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num_neighbors):
     """
     Runs evaluation on a model's performance on a given evaluation dataset.
@@ -362,7 +362,7 @@ def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num
     - latencies_list: A list of latencies in seconds for each question answered.
     - predictions_list: A list of dictionaries containing the model's predicted answers and relevant documents for each question.
     """
-    st.info("`Running evaluation ...`")
+    st.info("`运行评估 ...`")
     predictions_list = []
     retrieved_docs = []
     gt_dataset = []
@@ -401,7 +401,7 @@ def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num
     retrieval_grade = grade_model_retrieval(gt_dataset, retrieved_docs, grade_prompt)
     return answers_grade, retrieval_grade, latencies_list, predictions_list
 
-
+st.set_page_config(page_title="QA生成&效果评估", page_icon=None, layout="centered", initial_sidebar_state="auto", menu_items=None)
 # Auth
 st.sidebar.image("img/diagnostic.jpg")
 
@@ -451,18 +451,18 @@ with st.sidebar.form("user_input"):
     submitted = st.form_submit_button("Submit evaluation")
 
 # App
-st.header("`Auto-evaluator`")
+st.header("`QA生成 & 效果评估`")
 st.info(
-    "`I am an evaluation tool for question-answering. Given documents, I will auto-generate a question-answer eval "
-    "set and evaluate using the selected chain settings. Experiments with different configurations are logged. "
-    "Optionally, provide your own eval set (as a JSON, see docs/karpathy-pod-eval.json for an example).`")
+    "`这是一个用于问答评估的工具。对于给定文档，将自动生成一个问题-答案，并且对正确率，文档相关性，延迟等进行评估。 "
+    "使用您选择的langchain参数设置进行评估，并记录使用不同配置的实验。 "
+    "（可选择项：您可以提供自己的评估集（以JSON格式）。请参阅docs/karpathy-pod-eval.json获取示例).`")
 
 with st.form(key='file_inputs'):
-    uploaded_file = st.file_uploader("`Please upload a file to evaluate (.txt or .pdf):` ",
+    uploaded_file = st.file_uploader("`请上传要评估的文件（.txt 或 .pdf 格式）:` ",
                                      type=['pdf', 'txt'],
                                      accept_multiple_files=True)
 
-    uploaded_eval_set = st.file_uploader("`[Optional] Please upload eval set (.json):` ",
+    uploaded_eval_set = st.file_uploader("`[可选] 请上传评估集文件（.json 格式）:` ",
                                          type=['json'],
                                          accept_multiple_files=False)
 
@@ -502,20 +502,18 @@ if uploaded_file:
     percentage_answer = (correct_answer_count / len(graded_answers)) * 100
     percentage_docs = (correct_docs_count / len(graded_retrieval)) * 100
 
-    st.subheader("`Run Results`")
+    st.subheader("`运行结果`")
     st.info(
-        "`I will grade the chain based on: 1/ the relevance of the retrived documents relative to the question and 2/ "
-        "the summarized answer relative to the ground truth answer. You can see (and change) to prompts used for "
-        "grading in text_utils`")
+        "`程序将根据以下标准对链路进行评分：1/ 相对于问题的检索到的文档的相关性，以及 2/ 相对于真实答案，对总结后的答案进行评分。"
+        " 您可以在text_utils中查看（并更改）用于评分的提示信息`")
     st.dataframe(data=d, use_container_width=True)
 
     # Accumulate results
-    st.subheader("`Aggregate Results`")
+    st.subheader("`结果聚合`")
     st.info(
-        "`Retrieval and answer scores are percentage of retrived documents deemed relevant by the LLM grader ("
-        "relative to the question) and percentage of summarized answers deemed relevant (relative to ground truth "
-        "answer), respectively. The size of point correponds to the latency (in seconds) of retrieval + answer "
-        "summarization (larger circle = slower).`")
+        "`检索和答案分数是由LLM评分器认定为相关的检索文档的百分比 (relative to the question) "
+        "以及相对于真实答案认定为相关的总结答案的百分比 (relative to ground truth answer)"
+        "点的大小对应于检索和答案总结的延迟时间（以秒为单位） (larger circle = slower)`")
     new_row = pd.DataFrame({'chunk_chars': [chunk_chars],
                             'overlap': [overlap],
                             'split': [split_method],

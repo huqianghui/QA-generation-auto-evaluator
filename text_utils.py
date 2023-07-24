@@ -1,5 +1,10 @@
 import re
 from langchain.prompts import PromptTemplate
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
+)
 
 
 def clean_pdf_text(text: str) -> str:
@@ -118,3 +123,28 @@ template = """
     "Context is relevant: True or False." \n """
 
 GRADE_DOCS_PROMPT_FAST = PromptTemplate(input_variables=["query", "result", "answer"], template=template)
+
+
+promptTempl1 = """You are a smart assistant designed to help high school teachers come up with reading comprehension questions.
+    Given a piece of text, you must come up with a question and answer pair that can be used to test a student's reading comprehension abilities.
+    When coming up with a question/answer pair, you must respond in the following format:
+    ```
+    {{
+        "question": "$YOUR_QUESTION_HERE",
+        "answer": "$THE_ANSWER_HERE"
+    }}
+    ```
+
+    Everything between the ``` must be valid json.
+    """
+
+templ2 = """Please come up with a question/answer pair, in the specified JSON format, for the following text:
+----------------
+{text}"""
+
+CHAT_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(promptTempl1),
+        HumanMessagePromptTemplate.from_template(templ2),
+    ]
+)
