@@ -29,18 +29,18 @@ from llama_index import StorageContext, ServiceContext,LLMPredictor,GPTVectorSto
 os.environ["OPENAI_API_TYPE"] = "azure"
 os.environ["OPENAI_API_BASE"] = "https://openaidemo-hu.openai.azure.com/"
 os.environ["OPENAI_API_VERSION"] = "2023-03-15-preview"
-os.environ["OPENAI_API_KEY"] = "a65f52d60c744eb9b141d9939cd4c4b6"
+os.environ["OPENAI_API_KEY"] = "XXXXXXXXXXX"
 
 OPENAI_API_TYPE = "azure"
 OPENAI_API_BASE = "https://openaidemo-hu.openai.azure.com/"
 OPENAI_API_VERSION = "2023-03-15-preview"
-OPENAI_API_KEY = "a65f52d60c744eb9b141d9939cd4c4b6"
+OPENAI_API_KEY = "XXXXXXXXXXX"
 DEPLOYMENT_NAME = "gpt-35-turbo"
 
 openai.api_type = "azure"
 openai.api_version = "2022-12-01"
 openai.api_base = "https://openaidemo-hu.openai.azure.com/"
-openai.api_key = "a65f52d60c744eb9b141d9939cd4c4b6"
+openai.api_key = "XXXXXXXXXXX"
 
 
 FAISS_FILE_PATH="./faiss_index"
