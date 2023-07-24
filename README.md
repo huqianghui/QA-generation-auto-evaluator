@@ -1,6 +1,13 @@
 利用LLM来开发应用，生成相应的企业知识库的主要分成如下四个阶段：
 ![prompt-flow-lifecycle](https://github.com/huqianghui/QA-generation-auto-evaluator/assets/7360524/7133c99d-95a3-45e8-9dbb-fb3f345b7b95)
 
+在前面的系列讲座中，以及讲过怎么去优化索引以及embedding的一些知识介绍。
+也陆陆续续收到有一些客户反馈，主要有两个问题：
+
+1. 用户拿到IT部门的原型程序URL之后，除了页面提示的问题，不知道还能问什么问题。
+
+2. IT部门得到原厂或者合作伙伴的原型之后，大概根据之前系列视频知道了优化方向，但是希望能到得到更好的工具和可视化方式来衡量是否已经调整到上线要求，这样怎么来具体量化等。
+
 
 # `Auto-evaluator` :brain: :memo:
 
