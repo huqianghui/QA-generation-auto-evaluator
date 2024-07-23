@@ -12,6 +12,17 @@
 
 youtube地址： https://youtu.be/feQrsP-BIfY
 
+一些参数测试数据参考：
+
+https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/azure-ai-search-outperforming-vector-search-with-hybrid/ba-p/3929167
+
+<img width="775" alt="Screenshot 2024-07-23 at 10 08 35 PM" src="https://github.com/user-attachments/assets/e72651d2-72b1-4841-b006-0992c2b6b4b4">
+
+<img width="365" alt="Screenshot 2024-07-23 at 10 08 28 PM" src="https://github.com/user-attachments/assets/fe178872-0c2a-4185-b45c-69244e2f7ddf">
+
+<img width="698" alt="Screenshot 2024-07-23 at 10 08 07 PM" src="https://github.com/user-attachments/assets/6f8f2160-8ff1-4948-b45b-cb63a886b8a9">
+
+
 # `QA-generation & Auto-evaluator` :brain: :memo:
 
 > **Note**
